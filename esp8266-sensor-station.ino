@@ -1,3 +1,12 @@
+//
+// Implementation of an ESP8266 Webthing sensor station that reports
+// readings from the following sensors:
+//
+// - DHT22      - temperature/humidity (GPIO)
+// - BH1750     - light level (I2C)
+// - BMP280     - temperature/pressure (I2C)
+// - Photocell  - light level (Analog)
+//
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -8,8 +17,6 @@
 #include "i2c_scan.h"
 #include "webthing.h"
 #include "sensors.h"
-
-
 
 //
 // wifi_credentials.h should contain:
@@ -33,7 +40,7 @@
 #define I2C_MAX_DEVICES     5
 
 //
-// Definition of sensor classes
+// Declaration of sensor driver classes
 //
 
 extern BH1750 *BH1750p;
@@ -291,7 +298,7 @@ void loop()
   if (wifi_active)
     Serial.printf("IP = %s (%s)\n", localIP.c_str(), ssid);
 
-  // Read BMP280 Temperature/Pressur sensor
+  // Read BMP280 Temperature/Pressure sensor
   int ret;
 #ifdef ENABLE_BMP280
   float tempC = 0, pres = 0;
