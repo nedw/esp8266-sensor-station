@@ -17,15 +17,22 @@
 #include "i2c_scan.h"
 #include "webthing.h"
 #include "sensors.h"
+#include <WiFi.h>
+#include <WiFiMulti.h>
+#include "wifi_credentials.h"
 
 //
 // wifi_credentials.h should contain:
 //
-// const char* ssid = "<your SSID>>";
-// const char* password = "<your password>";
+// const struct wifi_credentials {
+//     const char * const ssid;
+//     const char * const pass;
+// } wifi_credentials[] = {
+//     { "<ssid1>", "<pass1>" },
+//     { "<ssid2>", "<pass2> "}
+//     etc
+// };
 //
-
-#include "wifi_credentials.h"
 
 #define ARRAYSIZE(x)  (sizeof(x) / sizeof(x[0]))
 
@@ -43,8 +50,11 @@ extern Adafruit_BMP280 *BMP280p;
 extern DHT22 *DHT22p;
 extern WebThingAdapter* adapter;
 
+WiFiMulti wifiMulti;
 bool wifi_active = false;
 String localIP;
+String SSID;
+const char *ssid = NULL;
 
 //
 // Definition of structures used for I2C scanning
@@ -95,11 +105,14 @@ void init_wifi()
 {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+
+  for (int i = 0 ; i < ARRAYSIZE(wifi_credentials) ; ++i) {
+    wifiMulti.addAP(wifi_credentials[i].ssid, wifi_credentials[i].pass);
+  }
 
   int count = 45 * 2;
   // Wait for connection
-  while (count > 0 && WiFi.status() != WL_CONNECTED) {
+  while (count > 0 && wifiMulti.run() != WL_CONNECTED) {
     --count;
     delay(500);
     Serial.print(".");
@@ -107,6 +120,8 @@ void init_wifi()
 
   if (count > 0) {
     wifi_active = true;
+    SSID = WiFi.SSID();
+    ssid = SSID.c_str();
     Serial.println("");
     Serial.print("Connected to ");
     Serial.println(ssid);
