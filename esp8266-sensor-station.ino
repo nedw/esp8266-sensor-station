@@ -30,13 +30,8 @@
 #define ARRAYSIZE(x)  (sizeof(x) / sizeof(x[0]))
 
 #define UPDATE_PERIOD_MS    (2 * 1000)      // update period of sensors
-#define MAX_ANALOG_VALUE    1024
-
-#define SSD1306_ADDR        0x3c            // Default SSD1306 OLED display address
 #define OLED_BRIGHTNESS     10              // Initial OLED display brightness
 
-#define SDA_PIN             5               // I2C data pin
-#define SCL_PIN             4               // I2C clock pin
 #define I2C_MAX_DEVICES     5
 
 //
@@ -86,8 +81,10 @@ void init_ssd1306()
 
 void init_led()
 {
+#ifdef ESP8266
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
+#endif
 }
 
 //
@@ -134,7 +131,9 @@ void setup()
 
   init_led();                         // turn on LED while initialising to WiFi
   init_wifi();
+#ifdef ESP8266
   digitalWrite(LED_BUILTIN, HIGH);    // turn off LED once WiFi is established
+#endif
   if (wifi_active)
     init_webthing(OLED_BRIGHTNESS);
 
@@ -195,7 +194,11 @@ bool find_devices()
 // Update SSD1306 display with sensor values and, if changed, new OLED brightness setting
 //
 
+#ifdef ESP32
+void update_ssd1306(float tempC, float pres, float temp, float hum, int lux, int adc, int touch, int new_brightness)
+#else
 void update_ssd1306(float tempC, float pres, float temp, float hum, int lux, int adc, int new_brightness)
+#endif
 {
   static int current_brightness = -1;
 
@@ -224,7 +227,11 @@ void update_ssd1306(float tempC, float pres, float temp, float hum, int lux, int
   snprintf(buf, sizeof(buf), "Analog: %d, Lux: %d", adc, lux);
   ssd1306.drawString(0, 36, buf);
 
+#ifdef ESP32
+  snprintf(buf, sizeof(buf), "Touch: %d, Heap: %d", touch, ESP.getFreeHeap());
+#else
   snprintf(buf, sizeof(buf), "Heap: %d", ESP.getFreeHeap());
+#endif
   ssd1306.drawString(0, 48, buf);
 
   ssd1306.display();
@@ -330,19 +337,17 @@ void loop()
 #endif
 #endif
 
+  int adc = -1;
+
   // Read analog input - connected to simple photocell sensor
 #ifdef ENABLE_ANALOG
-  int adc = MAX_ANALOG_VALUE - analogRead(0);
+  adc = MAX_ANALOG_VALUE - analogRead(ANALOG_CHANNEL);
 #ifdef ENABLE_BH1750
   Serial.printf("Analog = %d, Lux = %d\n", adc, lux);
 #else
   Serial.printf("Analog = %d\n", adc);
 #endif
-#else
-  const int adc = -1;
 #endif
-
-  Serial.printf("Free heap %d\n", ESP.getFreeHeap());
 
   // Update Webthing properties with sensor readings
   if (wifi_active)
@@ -350,7 +355,14 @@ void loop()
 
   // Update OLED display with sensor readings and (if required), brightness
   int brightness = get_oled_brightness();
+#ifdef ESP32
+  int touch = touchRead(TOUCH_CHANNEL);
+  Serial.printf("Touch %d, Free heap %d\n", touch, ESP.getFreeHeap());
+  update_ssd1306(tempC, pres, temp, hum, lux, adc, touch, brightness);
+#else
   update_ssd1306(tempC, pres, temp, hum, lux, adc, brightness);
+  Serial.printf("Free heap %d\n", ESP.getFreeHeap());
+#endif
 
   Serial.println("");
   delay(2000);

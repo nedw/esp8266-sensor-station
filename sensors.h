@@ -7,7 +7,33 @@
 
 #define MEAN_SEA_LEVEL_PRESSURE 1013.25
 
+//
+// GPIO/Analog definitions
+//
+
+#ifdef ESP32
+#define ANALOG_CHANNEL      A0
+#define MAX_ANALOG_VALUE    4096
+#define DHT22_GPIO_PIN      32
+#define TOUCH_CHANNEL       T7
+#else 
+#define ANALOG_CHANNEL      0
+#define MAX_ANALOG_VALUE    1024
 #define DHT22_GPIO_PIN      14
+#endif
+//
+// I2C definitions
+//
+
+#ifdef ESP32
+#define SDA_PIN             21               // I2C data pin
+#define SCL_PIN             22               // I2C clock pin
+#else
+#define SDA_PIN             5               // I2C data pin
+#define SCL_PIN             4               // I2C clock pin
+#endif
+
+#define SSD1306_ADDR        0x3c            // Default SSD1306 OLED display address
 
 //
 // Sensor initialisation and reading routines. 
