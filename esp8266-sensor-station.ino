@@ -22,6 +22,9 @@
 #include "i2c_scan.h"
 #include "webthing.h"
 #include "sensors.h"
+#include <WiFi.h>
+#include <WiFiMulti.h>
+#include "wifi_credentials.h"
 
 #define ENABLE_BLE
 
@@ -41,8 +44,6 @@
 //     etc
 // };
 //
-
-#include "wifi_credentials.h"
 
 #define ARRAYSIZE(x)  (sizeof(x) / sizeof(x[0]))
 
