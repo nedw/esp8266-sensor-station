@@ -9,20 +9,37 @@
 //
 
 #include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
 #include <Wire.h>
+
 #include <BH1750.h>
 #include <Adafruit_BMP280.h>
 #include <DHT22.h>
 #include <SSD1306Wire.h> // legacy include: `#include "SSD1306.h"`
+
 #include "i2c_scan.h"
 #include "webthing.h"
 #include "sensors.h"
 
+#define ENABLE_BLE
+
+#ifdef ENABLE_BLE
+#include "ble.h"
+#endif
+
 //
 // wifi_credentials.h should contain:
 //
-// const char* ssid = "<your SSID>>";
-// const char* password = "<your password>";
+// const struct wifi_credentials {
+//     const char * const ssid;
+//     const char * const pass;
+// } wifi_credentials[] = {
+//     { "<ssid1>", "<pass1>" },
+//     { "<ssid2>", "<pass2> "}
+//     etc
+// };
 //
 
 #include "wifi_credentials.h"
@@ -43,8 +60,11 @@ extern Adafruit_BMP280 *BMP280p;
 extern DHT22 *DHT22p;
 extern WebThingAdapter* adapter;
 
+WiFiMulti wifiMulti;
 bool wifi_active = false;
 String localIP;
+String SSID;
+const char *ssid = NULL;
 
 //
 // Definition of structures used for I2C scanning
@@ -66,8 +86,8 @@ const i2c_addr_t required_devices[] = {
 };
 const int required_devices_count = ARRAYSIZE(required_devices);
 
+#ifdef ENABLE_SSD1306
 SSD1306Wire ssd1306(0x3c, SDA_PIN, SCL_PIN);
-
 
 //
 // SSD1306 Routines
@@ -78,6 +98,8 @@ void init_ssd1306()
   ssd1306.init();
   ssd1306.setFont(ArialMT_Plain_10);
 }
+
+#endif
 
 void init_led()
 {
@@ -95,11 +117,14 @@ void init_wifi()
 {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+
+  for (int i = 0 ; i < ARRAYSIZE(wifi_credentials) ; ++i) {
+    wifiMulti.addAP(wifi_credentials[i].ssid, wifi_credentials[i].pass);
+  }
 
   int count = 45 * 2;
   // Wait for connection
-  while (count > 0 && WiFi.status() != WL_CONNECTED) {
+  while (count > 0 && wifiMulti.run() != WL_CONNECTED) {
     --count;
     delay(500);
     Serial.print(".");
@@ -107,6 +132,8 @@ void init_wifi()
 
   if (count > 0) {
     wifi_active = true;
+    SSID = WiFi.SSID();
+    ssid = SSID.c_str();
     Serial.println("");
     Serial.print("Connected to ");
     Serial.println(ssid);
@@ -144,6 +171,9 @@ void setup()
 #ifdef ENABLE_SSD1306
   // Initialise SSD1306 OLED display
   init_ssd1306();                     
+#endif
+#ifdef ENABLE_BLE
+  init_ble();
 #endif
 }
 
@@ -237,6 +267,22 @@ void update_ssd1306(float tempC, float pres, float temp, float hum, int lux, int
   ssd1306.display();
 #endif
 }
+
+#ifdef ENABLE_BLE
+void update_ble(float tempC, float pres, float temp, float hum, int lux, int adc, int touch)
+{
+  char buf[256];
+
+  //if (wifi_active) {
+  //  snprintf(buf, sizeof(buf), "%s %s", localIP.c_str(), ssid);
+  //}
+
+  snprintf(buf, sizeof(buf),
+            "Temp %.2f, Pres %.2f, Temp %.1f, Hum %.1f, Analog %d, Lux %d, Touch %d, Heap %d",
+            tempC, pres, temp, hum, adc, lux, touch, ESP.getFreeHeap());
+  set_ble(buf);
+}
+#endif
 
 //
 // Check if a sensor update is due.
@@ -359,6 +405,9 @@ void loop()
   int touch = touchRead(TOUCH_CHANNEL);
   Serial.printf("Touch %d, Free heap %d\n", touch, ESP.getFreeHeap());
   update_ssd1306(tempC, pres, temp, hum, lux, adc, touch, brightness);
+#ifdef ENABLE_BLE
+  update_ble(tempC, pres, temp, hum, lux, adc, touch);
+#endif
 #else
   update_ssd1306(tempC, pres, temp, hum, lux, adc, brightness);
   Serial.printf("Free heap %d\n", ESP.getFreeHeap());
