@@ -104,8 +104,8 @@ I use the `nRF Connect` app on my Android phone for testing.
 ## 3. Dependencies
 The project requires a number of additional Arduino libraries.  These should be cloned from GitHub in the `libraries/` directory.  The following is a list of  dependencies required:
 
-Dependency | GitHub Repo
-- | -
+| Dependency | GitHub Repo |
+| - | - |
 DHT22 driver | `git@github.com:nedw/esp8266-DHT22.git`
 BH1750 driver | `git@github.com:nedw/esp8266-BH1750.git`
 SSD1306 OED driver | `git@github.com:ThingPulse/esp8266-oled-ssd1306.git`
@@ -114,8 +114,8 @@ Mozilla WebThings | `https://github.com/nedw/webthing-arduino.git`
 
 In addition, the  Mozilla WebThings library has the following dependencies, which will also need to be added:
 
-Dependency | GitHub Repo
-- | -
+| Dependency | GitHub Repo |
+| - | - |
 Arduino JSON | `https://github.com/bblanchon/ArduinoJson.git`
 ESP Async Webserver | `https://github.com/me-no-dev/ESPAsyncWebServer`
 ESP Async TCP | `https://github.com/me-no-dev/ESPAsyncTCP`
