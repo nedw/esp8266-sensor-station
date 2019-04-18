@@ -75,3 +75,11 @@ int get_oled_brightness()
   return value.number;
 }
 
+void set_oled_brightness(int brightness)
+{
+  ThingPropertyValue value;
+  value.number = brightness;
+
+  oled_brightness.setValue(value);
+}
+

@@ -22,7 +22,7 @@ To get the project running in your environment, you need to make two changes:
 1. Set up WiFi Credentials
 2. Set up GPIO/I2C/ADC pins
 
-_WiFi Credentials_
+### 2.1  WiFi Credentials
 
 The WiFi credentials need to be stored in a file called `wifi_credentials.h` with the following template:
 
@@ -36,9 +36,9 @@ const struct wifi_credentials {
     ...etc...
 }
 ```
-You needn't include multiple SSIDs - simply have one line per SSID you are interested in connecting to.
+You needn't include multiple SSIDs - you can have just SSID line if you wish.
 
-_GPIO/I2C/ADC pins_
+### 2.2 GPIO/I2C/ADC pins
 
 The pin configuration for these is defined in `sensors.h` for both ESP8266 and ESP32.  The following is an extract from the file showing the default settings that you may have to change:
 
@@ -67,6 +67,40 @@ The pin configuration for these is defined in `sensors.h` for both ESP8266 and E
 ```
 The `TOUCH_CHANNEL` setting is an experimental pin whose value is also presented alongside that of the other sensor readings.  In the project as it stands, the pin is just connected to a jumper lead for experiments with touch input.
 
+### 2.3 WebThing URLs
+
+The project implements a webthing server for reading the sensor information.  The following URL can be used to read all the sensor properties:
+
+`http://sensors.local/things/sensor/properties`
+
+NOTE: this requires the version of Mozilla WebThings given below ("Dependencies") that
+supports a URL that reads all properties.
+
+The return value is JSON text that shows all the properties.  You can either point your browser at the above URL.  Alternatively, you can read it with `curl` and format the JSON output with `python` using the following script:
+
+```
+url=$1
+# things/sensor/properties
+curl -s -D header.txt -X GET http://sensors.local/$url -H 'Content-Type: application/json' > response.txt
+cat header.txt
+python -m json.tool < response.txt
+if [ $? -ne 0 ]
+then
+	cat response.txt
+fi
+rm response.txt header.txt
+```
+
+Run the script with the argument `things/sensor/properties`.
+
+### 2.4 Bluetooth (BLE)
+
+The project broadcasts two textual characteristics as follows:
+- A read-only characteristic that shows the sensor settings
+- A read-write characteristic that can be used to set the OLED brightness (0-255)
+
+I use the `nRF Connect` app on my Android phone for testing.
+
 ## 3. Dependencies
 The project requires a number of additional Arduino libraries.  These should be cloned from GitHub in the `libraries/` directory.  The following is a list of  dependencies required:
 
@@ -87,6 +121,7 @@ ESP Async Webserver | `https://github.com/me-no-dev/ESPAsyncWebServer`
 ESP Async TCP | `https://github.com/me-no-dev/ESPAsyncTCP`
 Async TCP (for ESP32) | `https://github.com/me-no-dev/AsyncTCP`
 
-
-Finally, have fun!
-
+## 4. Caveats
+- The ESP32 only has single radio that has to be shared with WiFi and BLE.  This means that when you enable both at the time, WiFi response can suffer several seconds delay.  BLE seems to work reasonably okay.
+- I have had problems with the mDNS support, which can tend to just stop advertising,
+so you can't use the `sensors.local` name but, rather, have to use the IP address. 

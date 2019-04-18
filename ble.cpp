@@ -1,8 +1,20 @@
 #include "ble.h"
+#include "webthing.h"
 
 BLEServer *server = NULL;
 BLEService *service = NULL;
-BLECharacteristic *characteristic = NULL;
+BLECharacteristic *read_characteristic = NULL;
+BLECharacteristic *write_characteristic = NULL;
+
+void WriteCallback::onWrite(BLECharacteristic* pCharacteristic)
+{
+  std::string s = pCharacteristic->getValue();
+  const int n = atoi(s.c_str());
+  if (n >= 0 && n <= 255) {
+    Serial.printf("Setting brightness to %d\n", n);
+    set_oled_brightness(n);
+  }
+}
 
 void init_ble()
 {
@@ -12,8 +24,9 @@ void init_ble()
   server = BLEDevice::createServer();
   service = server->createService(SERVICE_UUID);
 
-  characteristic = service->createCharacteristic(
-      CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ);
+  read_characteristic = service->createCharacteristic(READ_CHARACTERSTIC_UUID, BLECharacteristic::PROPERTY_READ);
+  write_characteristic = service->createCharacteristic(WRITE_CHARACTERSTIC_UUID, BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ);
+  write_characteristic->setCallbacks(new WriteCallback);
 
   service->start();
   server->getAdvertising()->start();
@@ -22,6 +35,5 @@ void init_ble()
 
 void set_ble(const char *s)
 {
-    characteristic->setValue(s);
+    read_characteristic->setValue(s);
 }
-
